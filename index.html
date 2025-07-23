@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesador de Citaciones Médicas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #34495e;
+            font-size: 1.1em;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin: 0 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .stats {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #e9ecef;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .download-btn {
+            background: #28a745;
+            font-size: 14px;
+            padding: 10px 20px;
+            margin: 10px 5px;
+            border-radius: 25px;
+        }
+
+        .copy-btn {
+            background: #17a2b8;
+            font-size: 14px;
+            padding: 10px 20px;
+            margin: 10px 5px;
+            border-radius: 25px;
+        }
+
+        .preview {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 15px;
+        }
+
+        .message-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .message-card h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .message-text {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-family: system-ui;
+            line-height: 1.5;
+        }
+
+        .copy-individual {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 Procesador de Citaciones Médicas</h1>
+        
+        <div class="input-section">
+            <label for="inputText">📝 Pegar texto con citaciones médicas:</label>
+            <textarea id="inputText" placeholder="Pega aquí el texto con las citaciones médicas (WhatsApp, emails, documentos, etc.)..."></textarea>
+        </div>
+
+        <div class="button-group">
+            <button id="processBtn" onclick="processText()">🚀 Procesar con IA</button>
+            <button onclick="clearAll()">🗑️ Limpiar Todo</button>
+        </div>
+
+        <div id="loading" class="loading">
+            <div>🔄 Procesando con Inteligencia Artificial...</div>
+            <div style="font-size: 14px; margin-top: 10px;">Esto puede tomar unos segundos</div>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="results" class="results">
+            <div id="stats" class="stats"></div>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('csv')">📊 Datos CSV</button>
+                <button class="tab" onclick="showTab('calendar')">📅 Calendario</button>
+                <button class="tab" onclick="showTab('messages')">💬 Mensajes</button>
+            </div>
+
+            <div id="csvTab" class="tab-content active">
+                <h3>📊 Archivo CSV para Google Sheets</h3>
+                <button class="download-btn" onclick="downloadCSV()">⬇️ Descargar CSV</button>
+                <button class="copy-btn" onclick="copyCSV()">📋 Copiar CSV</button>
+                <div id="csvPreview" class="preview"></div>
+            </div>
+
+            <div id="calendarTab" class="tab-content">
+                <h3>📅 Eventos de Calendario</h3>
+                <button class="download-btn" onclick="downloadICS()">⬇️ Descargar ICS</button>
+                <button class="copy-btn" onclick="copyICS()">📋 Copiar ICS</button>
+                <div id="icsPreview" class="preview"></div>
+            </div>
+
+            <div id="messagesTab" class="tab-content">
+                <h3>💬 Mensajes Personalizados</h3>
+                <button class="copy-btn" onclick="copyAllMessages()">📋 Copiar Todos</button>
+                
+                <h4 style="margin: 20px 0 10px 0;">👤 Mensajes Individuales:</h4>
+                <div id="individualMessages"></div>
+                
+                <h4 style="margin: 20px 0 10px 0;">📋 Listado Grupal para WhatsApp:</h4>
+                <button class="copy-btn" onclick="copyGroupMessage()">📋 Copiar Listado</button>
+                <div id="groupMessage" class="preview"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let processedData = [];
+        let csvContent = '';
+        let icsContent = '';
+
+        // API URL - Cambiar por tu URL de Vercel cuando esté deployado
+        const API_URL = 'https://tu-app.vercel.app/api/process';
+
+        async function processText() {
+            const inputText = document.getElementById('inputText').value.trim();
+            
+            if (!inputText) {
+                showError('Por favor ingresa el texto a procesar');
+                return;
+            }
+
+            if (inputText.length < 50) {
+                showError('El texto parece muy corto. Asegúrate de incluir citaciones médicas completas.');
+                return;
+            }
+
+            // UI Loading
+            document.getElementById('processBtn').disabled = true;
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('results').classList.remove('active');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: inputText })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                processedData = data.citaciones || [];
+                
+                if (processedData.length === 0) {
+                    throw new Error('No se encontraron citaciones válidas en el texto. Verifica que el formato sea correcto.');
+                }
+
+                generateOutputs();
+                showResults();
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error al procesar: ' + error.message);
+            } finally {
+                document.getElementById('processBtn').disabled = false;
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        function generateOutputs() {
+            generateCSV();
+            generateICS();
+            generateMessages();
+            updateStats();
+        }
+
+        function generateCSV() {
+            const headers = ['Expediente', 'Nombre', 'CUIL', 'Fecha', 'Hora', 'Direccion', 'Ciudad', 'Tipo', 'Motivo', 'ART', 'Patologia'];
+            
+            let csv = headers.join(',') + '\n';
+            
+            processedData.forEach(item => {
+                const row = [
+                    item.expediente || '',
+                    `"${item.nombre || ''}"`,
+                    item.cuil || '',
+                    item.fecha || '',
+                    item.hora || '',
+                    `"${item.direccion || ''}"`,
+                    item.ciudad || 'Rosario',
+                    item.tipo || '',
+                    `"${item.motivo || ''}"`,
+                    `"${item.art || ''}"`,
+                    `"${item.patologia || ''}"`
+                ];
+                csv += row.join(',') + '\n';
+            });
+            
+            csvContent = csv;
+            document.getElementById('csvPreview').textContent = csv;
+        }
+
+        function generateICS() {
+            let ics = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Estudio Juridico//Citaciones//ES\n';
+            
+            processedData.forEach(item => {
+                if (item.fecha && item.hora) {
+                    const startDate = formatDateForICS(item.fecha, item.hora);
+                    const endDate = formatDateForICS(item.fecha, item.hora, 60);
+                    
+                    ics += 'BEGIN:VEVENT\n';
+                    ics += `DTSTART:${startDate}\n`;
+                    ics += `DTEND:${endDate}\n`;
+                    ics += `SUMMARY:${item.tipo} - ${item.nombre}\n`;
+                    
+                    let description = `Expediente: ${item.expediente || 'N/A'}`;
+                    if (item.motivo) description += `\\nTipo: ${item.motivo}`;
+                    if (item.cuil) description += `\\nCUIL: ${item.cuil}`;
+                    if (item.art) description += `\\nART: ${item.art}`;
+                    
+                    ics += `DESCRIPTION:${description}\n`;
+                    
+                    if (item.direccion) {
+                        ics += `LOCATION:${item.direccion}, ${item.ciudad}\n`;
+                    } else if (item.linkVirtual) {
+                        ics += `LOCATION:Virtual\n`;
+                    }
+                    
+                    ics += `UID:${Date.now()}-${Math.random().toString(36).substr(2, 9)}\n`;
+                    ics += 'END:VEVENT\n';
+                }
+            });
+            
+            ics += 'END:VCALENDAR';
+            icsContent = ics;
+            document.getElementById('icsPreview').textContent = ics;
+        }
+
+        function generateMessages() {
+            // Mensajes individuales
+            const individualContainer = document.getElementById('individualMessages');
+            individualContainer.innerHTML = '';
+
+            processedData.forEach((item, index) => {
+                const firstName = extractFirstName(item.nombre);
+                const adjustedTime = adjustTime(item.hora, -15);
+                
+                const message = `Hola ${firstName}, ¿cómo estás? 👋
+Te escribimos para recordarte tu ${getFullType(item.tipo)}. A continuación, los detalles:
+📍 *Lugar*: ${item.direccion || ''}, ${item.ciudad || 'Rosario'}
+🗓 *Fecha y hora*: ${item.fecha} – ${adjustedTime}
+⚖️ Un abogado del estudio va a estar esperándote allí.
+✅ *¿Podés confirmarnos asistencia?*`;
+
+                const messageCard = document.createElement('div');
+                messageCard.className = 'message-card';
+                messageCard.innerHTML = `
+                    <h4>${item.nombre || 'Sin nombre'}</h4>
+                    <button class="copy-individual" onclick="copyMessage(${index})">📋 Copiar</button>
+                    <div class="message-text">${message}</div>
+                `;
+                
+                individualContainer.appendChild(messageCard);
+            });
+
+            // Mensaje grupal
+            let groupMessage = '';
+            const sortedData = [...processedData].sort((a, b) => {
+                if (a.fecha && b.fecha) {
+                    const dateA = new Date(a.fecha.split('/').reverse().join('-'));
+                    const dateB = new Date(b.fecha.split('/').reverse().join('-'));
+                    if (dateA.getTime() === dateB.getTime() && a.hora && b.hora) {
+                        return a.hora.localeCompare(b.hora);
+                    }
+                    return dateA - dateB;
+                }
+                return 0;
+            });
+
+            sortedData.forEach(item => {
+                groupMessage += `📅 *${item.fecha}* - *${item.hora}* – ${item.nombre} _${item.motivo || 'Audiencia'}_ 🗂 Expte. ${item.expediente}\n`;
+            });
+
+            document.getElementById('groupMessage').textContent = groupMessage;
+        }
+
+        function extractFirstName(fullName) {
+            if (!fullName) return '';
+            const names = fullName.split(/[,\s]+/).filter(n => n.length > 1);
+            return names.find(n => !n.match(/^[A-Z]+$/)) || names[0] || '';
+        }
+
+        function adjustTime(hora, minutes) {
+            if (!hora) return '';
+            const [h, m] = hora.split(':').map(Number);
+            const date = new Date();
+            date.setHours(h, m + minutes);
+            return date.toTimeString().substr(0, 5);
+        }
+
+        function getFullType(tipo) {
+            const types = {
+                'ADH': 'Audiencia de Homologación',
+                'AM': 'Audiencia Médica',
+                'VDD': 'Valoración del Daño'
+            };
+            return types[tipo] || tipo;
+        }
+
+        function formatDateForICS(fecha, hora, addMinutes = 0) {
+            const [day, month, year] = fecha.split('/');
+            const [hours, minutes] = hora.split(':');
+            
+            const date = new Date(year, month - 1, day, parseInt(hours), parseInt(minutes) + addMinutes);
+            return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        }
+
+        function updateStats() {
+            const total = processedData.length;
+            document.getElementById('stats').innerHTML = `
+                📊 Se procesaron exitosamente <strong>${total}</strong> citaciones médicas
+            `;
+        }
+
+        function showResults() {
+            document.getElementById('results').classList.add('active');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            errorDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showTab(tabName) {
+            // Remove active class from all tabs and contents
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        function downloadCSV() {
+            downloadFile(csvContent, 'citaciones.csv', 'text/csv');
+        }
+
+        function downloadICS() {
+            downloadFile(icsContent, 'citaciones.ics', 'text/calendar');
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function copyCSV() {
+            copyToClipboard(csvContent, 'CSV copiado al portapapeles');
+        }
+
+        function copyICS() {
+            copyToClipboard(icsContent, 'Calendario copiado al portapapeles');
+        }
+
+        function copyAllMessages() {
+            const messages = Array.from(document.querySelectorAll('.message-text')).map(el => el.textContent).join('\n\n---\n\n');
+            copyToClipboard(messages, 'Todos los mensajes copiados');
+        }
+
+        function copyGroupMessage() {
+            const groupMessage = document.getElementById('groupMessage').textContent;
+            copyToClipboard(groupMessage, 'Listado grupal copiado al portapapeles');
+        }
+
+        function copyMessage(index) {
+            const messageText = document.querySelectorAll('.message-text')[index].textContent;
+            copyToClipboard(messageText, 'Mensaje copiado al portapapeles');
+        }
+
+        function copyToClipboard(text, successMessage) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Simple feedback
+                const originalBtn = event.target;
+                const originalText = originalBtn.textContent;
+                originalBtn.textContent = '✅ Copiado!';
+                setTimeout(() => {
+                    originalBtn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Error al copiar:', err);
+                alert('Error al copiar al portapapeles');
+            });
+        }
+
+        function clearAll() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('results').classList.remove('active');
+            document.getElementById('error').style.display = 'none';
+            processedData = [];
+            csvContent = '';
+            icsContent = '';
+        }
+    </script>
+</body>
+</html>
